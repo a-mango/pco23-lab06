@@ -20,8 +20,25 @@ ComputationManager::ComputationManager(int maxQueueSize): MAX_TOLERATED_QUEUE_SI
 }
 
 int ComputationManager::requestComputation(Computation c) {
-    // TODO
-    return -1;
+    monitorIn();
+
+    while (requests[c.computationType].size() >= MAX_TOLERATED_QUEUE_SIZE) {
+        if (stopped) {
+            monitorOut();
+            throwStopException();
+        }
+
+        wait(fullConditions[c.computationType]);
+    }
+
+    auto const id = nextId++;
+    requests[c.computationType].emplace(c, id);
+    results.emplace_front(id, std::nullopt);
+
+    signal(emptyConditions[c.computationType]);
+
+    monitorOut();
+    return id;
 }
 
 void ComputationManager::abortComputation(int id) {
@@ -42,16 +59,25 @@ Result ComputationManager::getNextResult() {
 }
 
 Request ComputationManager::getWork(ComputationType computationType) {
-    // TODO
-    // Replace all of the code below by your code
-
-    // Filled with arbitrary code in order to make the callers wait
     monitorIn();
-    auto c = Condition();
-    wait(c);
-    monitorOut();
 
-    return Request(Computation(computationType), -1);
+    // FIXME: should be if ?
+    while (requests[computationType].empty()) {
+        if (stopped) {
+            monitorOut();
+            throwStopException();
+        }
+
+        wait(emptyConditions[computationType]);
+    }
+
+    auto const r = requests[computationType].front();
+    requests[computationType].pop();
+
+    signal(fullConditions[computationType]);
+
+    monitorOut();
+    return r;
 }
 
 bool ComputationManager::continueWork(int id) {
