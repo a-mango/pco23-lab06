@@ -21,6 +21,7 @@
 #include <memory>
 #include <optional>
 #include <forward_list>
+#include <deque>
 
 #include "pcosynchro/pcohoaremonitor.h"
 
@@ -30,7 +31,7 @@
 enum class ComputationType : std::size_t {A, B, C, COUNT};
 
 template <typename T, std::size_t U>
-class TypedArray : public std::array<T, U> {
+class EnumIndexedArray : public std::array<T, U> {
 public:
     using std::array<T, U>::operator[];
 
@@ -203,15 +204,15 @@ protected:
     // Queues
     const size_t MAX_TOLERATED_QUEUE_SIZE;
 
-    constexpr static std::size_t TYPE_COUNT = static_cast<std::size_t>(ComputationType::COUNT);
+    constexpr static auto TYPE_COUNT = static_cast<std::size_t>(ComputationType::COUNT);
 
-    Condition                                   resultAvailable;
-    TypedArray<std::queue<Request>, TYPE_COUNT> requests;
-    TypedArray<Condition, TYPE_COUNT>           emptyConditions;
-    TypedArray<Condition, TYPE_COUNT>           fullConditions;
+    Condition                                         resultAvailable;
+    EnumIndexedArray<std::deque<Request>, TYPE_COUNT> buffers;
+    EnumIndexedArray<Condition, TYPE_COUNT>           notEmptyConditions;
+    EnumIndexedArray<Condition, TYPE_COUNT>           notFullConditions;
 
     using result_t = std::pair<std::size_t, std::optional<Result>>;
-    std::forward_list<result_t> results; // FIXME: handout say we shoudld "réodronnancer" the result
+    std::deque<result_t> results;
 
     bool stopped = false;
 
