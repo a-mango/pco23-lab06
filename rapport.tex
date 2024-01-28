@@ -91,6 +91,8 @@
         \item if we launch multiple work requests for any worker, the requests id are set in order in the console.
     \end{itemize}
 
+    \pagebreak
+
     \section*{Step 2 --- \texttt{getNextResult} and \texttt{provideResult}}
     \subsection*{Conception}
 
@@ -128,6 +130,8 @@
         \item In the sequence A-B-C-A, first the results A, B and C are returned, Then the second A result.
     \end{itemize}
 
+    \pagebreak
+
     \section*{Step 3 --- \texttt{abortComputation} and \texttt{continueWork}}
 
     \subsection*{Conception}
@@ -158,6 +162,8 @@
         \item A cancellation request for an already cancelled workload is logged, but ignored.
         \item A cancellation request for an already finished and displayed workload is logged, but ignored.
     \end{itemize}
+
+    \pagebreak
 
     \section*{Step 4 --- \texttt{stop} and \texttt{throwStopException}}
 
@@ -200,6 +206,8 @@ if (stopped) {
     \end{itemize}
 
     \section*{Conclusion}
+
+    In this project, the main challenge was to understand the correct workflow of the work requests and their dispatched results, as well as implementing it correctly with the prod-cons pattern in a Hoare monitor. The implementation of the Hoare monitor was particularly sensitive due to the necessity of orchestrating the waiting points. These points had to be synchronized precisely with the signal mechanisms to ensure deadlock-free operation.
 
 
 \end{document}
