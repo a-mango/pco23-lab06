@@ -58,19 +58,30 @@ void ComputationManager::abortComputation(int id) {
         return;
     }
 
-    // Remove the result from the results queue. It is always present per design.
-    resultsQueue.erase(
-        std::remove_if(resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) { return r.id == id; }),
-        resultsQueue.end());
+    // Remove the result from the results queue. By design, all known identifiers are in the results queue.
+    auto const resultToRemove =
+        std::remove_if(resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) { return r.id == id; });
+
+    // Avoid unnecessary work if the id wasn't found i.e. if it is incorrect.
+    if (resultToRemove == resultsQueue.end()) {
+        monitorOut();
+        return;
+    }
+
+    resultsQueue.erase(resultToRemove, resultsQueue.end());
 
     // Look in each buffer for the request with the given id. If found, remove it and signal the notFull condition.
     for (std::size_t i = 0; i < TYPE_COUNT; ++i) {
         auto& queue = requestsBuffer[i];
-        queue.erase(std::remove_if(queue.begin(), queue.end(), [id](auto const& r) { return r.getId() == id; }),
-                    queue.end());
+        auto const requestToRemove = std::remove_if(queue.begin(), queue.end(), [id](auto const& r) { return r.getId() == id; });
 
-        // Signal that there is now room in the queue if appropriate.
-        signal(notFullConditions[i]);
+        // Erase the request and signal if it was found in the current queue.
+        if (requestToRemove != queue.end()) {
+            queue.erase(requestToRemove, queue.end());
+            signal(notFullConditions[i]);
+
+            break; // No need to continue if the request was found.
+        }
     }
 
     monitorOut();
