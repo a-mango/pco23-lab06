@@ -99,7 +99,7 @@ Result ComputationManager::getNextResult() {
     }
 
     // Check whether a result is available.
-    if (resultsQueue.empty() || !resultsQueue.back().value.has_value()) {
+    while (resultsQueue.empty() || !resultsQueue.back().value.has_value()) {
         wait(resultAvailable);
 
         // Re-checking is mandatory here since the condition may have been
@@ -134,9 +134,10 @@ Request ComputationManager::getWork(ComputationType computationType) {
     if (requestsBuffer[computationType].empty()) {
         wait(notEmptyConditions[computationType]);
 
-        // Re-checking is mandatory here since the condition may have been
-        // signaled by the stop() method.
+        // Re-checking is mandatory here since the condition may have been signaled by the stop() method,
+        // which means that a new result may have appeared since.
         if (stopped) {
+            signal(notEmptyConditions[computationType]);
             monitorOut();
             throwStopException();
         }
