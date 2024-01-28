@@ -25,7 +25,7 @@ ComputationManager::ComputationManager(int maxQueueSize): MAX_TOLERATED_QUEUE_SI
 int ComputationManager::requestComputation(Computation c) {
     monitorIn();
 
-    if (buffers[c.computationType].size() >= MAX_TOLERATED_QUEUE_SIZE) {
+    if (requestsBuffer[c.computationType].size() >= MAX_TOLERATED_QUEUE_SIZE) {
         if (stopped) {
             monitorOut();
             throwStopException();
@@ -42,8 +42,8 @@ int ComputationManager::requestComputation(Computation c) {
 
     // Insert the request in the queue and prepare a result for it.
     auto const id = nextId++;
-    buffers[c.computationType].emplace_back(c, id);
-    results.emplace_front(id);
+    requestsBuffer[c.computationType].emplace_back(c, id);
+    resultsQueue.emplace_front(id);
 
     signal(notEmptyConditions[c.computationType]);
 
@@ -60,13 +60,14 @@ void ComputationManager::abortComputation(int id) {
     }
 
     // Remove the result from the results queue.
-    results.erase(std::remove_if(results.begin(), results.end(), [id](auto const& r) {return r.id == id;}), results.end());
-    if (!results.empty() && results.back().value.has_value()){
+    resultsQueue.erase(std::remove_if(resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) {return r.id == id;}),
+        resultsQueue.end());
+    if (!resultsQueue.empty() && resultsQueue.back().value.has_value()){
         signal(resultAvailable);
 
         // Look in each request queue for the request with the given id. If found, remove it and signal the notFull condition.
         for(std::size_t i = 0; i < TYPE_COUNT; ++i) {
-            auto& queue = buffers[i];
+            auto& queue = requestsBuffer[i];
             queue.erase(std::remove_if(queue.begin(), queue.end(), [id](auto const& r) {return r.getId() == id;}), queue.end());
             signal(notFullConditions[i]);
         }
@@ -80,10 +81,10 @@ Result ComputationManager::getNextResult() {
     monitorIn();
 
     while (!stopped) {
-        if (!results.empty()) {
-            const auto& result = results.back().value;
+        if (!resultsQueue.empty()) {
+            const auto& result = resultsQueue.back().value;
             if (result.has_value()) {
-                results.pop_back();
+                resultsQueue.pop_back();
                 // FIXME: should we signal resultAvailable here ?
                 monitorOut();
                 return result.value();
@@ -102,7 +103,7 @@ Request ComputationManager::getWork(ComputationType computationType) {
     monitorIn();
 
     // FIXME: should be if ?
-    while (buffers[computationType].empty()) {
+    while (requestsBuffer[computationType].empty()) {
         if (stopped) {
             monitorOut();
             throwStopException();
@@ -117,8 +118,8 @@ Request ComputationManager::getWork(ComputationType computationType) {
         }
     }
 
-    auto const request = buffers[computationType].front();
-    buffers[computationType].pop_front();
+    auto const request = requestsBuffer[computationType].front();
+    requestsBuffer[computationType].pop_front();
 
     signal(notFullConditions[computationType]);
 
@@ -133,7 +134,8 @@ bool ComputationManager::continueWork(int id) {
         return false;
     }
 
-    auto const inProgress = std::any_of(results.begin(), results.end(), [id](auto const& r) {return r.id == id;});
+    auto const inProgress = std::any_of(
+        resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) {return r.id == id;});
 
     monitorOut();
     return inProgress;
@@ -143,8 +145,9 @@ void ComputationManager::provideResult(Result result) {
     monitorIn();
 
     // TODO: find a better way
-    auto const it = std::find_if(results.begin(), results.end(), [result](auto const& r) {return r.id == result.getId();});
-    if (it != results.end()) {
+    auto const it = std::find_if(
+        resultsQueue.begin(), resultsQueue.end(), [result](auto const& r) {return r.id == result.getId();});
+    if (it != resultsQueue.end()) {
         it->value = result;
         signal(resultAvailable);
     }

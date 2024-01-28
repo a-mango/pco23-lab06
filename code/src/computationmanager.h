@@ -220,7 +220,7 @@ protected:
      * @brief The buffers for the requests per computation type.
      * FIXME: change to queue
      */
-    EnumIndexedArray<std::deque<Request>, TYPE_COUNT> buffers;
+    EnumIndexedArray<std::deque<Request>, TYPE_COUNT> requestsBuffer;
 
     /**
      * @brief The conditions for the buffers per type not to be empty.
@@ -245,7 +245,7 @@ protected:
     /**
      * @brief The queue of results.
      */
-    std::deque<result_t> results;
+    std::deque<result_t> resultsQueue;
 
     /**
      * @brief Flag indicating whether the program is stopped.
