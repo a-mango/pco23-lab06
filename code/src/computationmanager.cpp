@@ -68,19 +68,25 @@ void ComputationManager::abortComputation(int id) {
     }
 
     // Remove the result from the results queue.
-    auto const findResultByID = [id](auto const& r) {return r.id == id;};
-    resultsQueue.erase(
-        std::remove_if(resultsQueue.begin(), resultsQueue.end(), findResultByID),
-        resultsQueue.end()
-    );
+    auto const toRemove = std::remove_if(
+        resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) {
+            return r.id == id;
+        });
+
+    if (toRemove == resultsQueue.end()) {
+        monitorOut();
+        return;
+    }
+
+    resultsQueue.erase(toRemove, resultsQueue.end());
 
     // Signal that there is a new result if appropriate.
     if (!resultsQueue.empty() && resultsQueue.back().value.has_value()) {
         signal(resultAvailable);
     }
 
-    // Look in each request queue for the request with the given id. If
-    // found, remove it and signal the notFull condition.
+    // Look in each request queue for the request with the given id. If found,
+    // remove it and signal the notFull condition.
     auto const findRequestById = [id](auto const& r) {return r.getId() == id;};
     for (std::size_t i = 0; i < TYPE_COUNT; ++i) {
         auto& queue = requestsBuffer[i];
@@ -106,7 +112,8 @@ Result ComputationManager::getNextResult() {
             if (result.has_value()) {
                 resultsQueue.pop_back();
                 // Wake up the next result thread if there is already a result.
-                if (!resultsQueue.empty() && resultsQueue.back().value.has_value()) {
+                if (!resultsQueue.empty() &&
+                    resultsQueue.back().value.has_value()) {
                     signal(resultAvailable);
                 }
                 monitorOut();
@@ -127,8 +134,7 @@ Request ComputationManager::getWork(ComputationType computationType) {
     // FIXME: could check for stop here but not huge improvement, may be
     // mentioned in report.
 
-    // Check whether the buffer is empty empty and if so, wait for it to be not
-    // empty.
+    // Check whether the buffer is empty and if so, wait for it to be not empty.
     while (requestsBuffer[computationType].empty()) {
         if (stopped) {
             monitorOut();
@@ -164,7 +170,7 @@ bool ComputationManager::continueWork(int id) {
         return false;
     }
 
-    // Check whether the result is already available.
+    // Check whether the result for the work request is already available.
     auto const hasResult = [id](auto const& r) {return r.id == id;};
     auto const inProgress =
         std::any_of(resultsQueue.begin(), resultsQueue.end(), hasResult);
@@ -176,11 +182,13 @@ bool ComputationManager::continueWork(int id) {
 void ComputationManager::provideResult(Result result) {
     monitorIn();
 
+    // Find the result based on its id.
     auto const it = std::find_if(
         resultsQueue.begin(), resultsQueue.end(), [result](auto const& r) {
             return r.id == result.getId();
         });
 
+    // If the result was found, update the optional value.
     if (it != resultsQueue.end()) {
         it->value = result;
         signal(resultAvailable);
@@ -194,11 +202,12 @@ void ComputationManager::stop() {
 
     stopped = true;
 
+    // Wake up all conditions so that threads may exit.
     auto const signalThread = [this](auto& c) {signal(c);};
-
-    // Wake up all conditions.
-    std::for_each(notEmptyConditions.begin(), notEmptyConditions.end(), signalThread);
-    std::for_each(notFullConditions.begin(), notFullConditions.end(), signalThread);
+    std::for_each(
+        notEmptyConditions.begin(), notEmptyConditions.end(), signalThread);
+    std::for_each(
+        notFullConditions.begin(), notFullConditions.end(), signalThread);
     signal(resultAvailable);
 
     monitorOut();
