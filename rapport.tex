@@ -50,6 +50,8 @@
     A shared buffer is used to store calculation requests issued by the GUI. Groups of workers per type will then fetch these requests in the order of arrival and execute them.
     The results are then returned to the GUI, which displays them in the order of arrival.
 
+    Because this project uses a Hoare monitor, the \texttt{monitorIn()} and \texttt{monitorOut()} methods are always called at the beginning and the end of methods that work with shared data.
+
     \subsection*{Data structures}
     This project uses an \texttt{EnumIndexedArray} (custom wrapper around \texttt{std::array}) to store the computation requests and the condition variables by computation type.
     This structure is indexed by the \texttt{ComputationType} enumeration, allowing for type-safe access to queues of computation requests.
@@ -96,7 +98,7 @@
     \section*{Step 2 --- \texttt{getNextResult} and \texttt{provideResult}}
     \subsection*{Conception}
 
-    \texttt{getNextResult} is responsible for retrieving the next available result in the correct order.
+    The \texttt{getNextResult} method is responsible for retrieving the next available result in the correct order.
     Upon entering the method, the monitor is locked to ensure exclusive access to the resultsQueue.
     It immediately checks if the system has been stopped, and if so, exits and throws a stop exception.
     A while loop is used to wait for an available result.
