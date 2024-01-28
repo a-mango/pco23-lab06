@@ -207,7 +207,9 @@ if (stopped) {
 
     \section*{Conclusion}
 
-    In this project, the main challenge was to understand the correct workflow of the work requests and their dispatched results, as well as implementing it correctly with the prod-cons pattern in a Hoare monitor. The implementation of the Hoare monitor was particularly sensitive due to the necessity of orchestrating the waiting points. These points had to be synchronized precisely with the signal mechanisms to ensure deadlock-free operation.
-
+    In this project, the main challenge was to understand the correct flow of the work requests and their dispatched results, as well as implementing it correctly with the producer-consumer pattern in a Hoare monitor.
+    The implementation of the Hoare monitor was particularly complex due to the necessity of orchestrating the waiting points for the different conditions.
+    Special attention had to be paid so that the conditions verify the state of the program once control is returned to them.
+    These points had to be synchronized precisely with the signal mechanisms to ensure deadlock-free operation.
 
 \end{document}
