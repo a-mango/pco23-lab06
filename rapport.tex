@@ -69,7 +69,19 @@
     This ensures a continuous flow of tasks to workers.
 
     \subsection*{Tests}
-%   Any edge cases ?
+
+    The following manual tests have been made and passed:
+
+    \begin{itemize}
+        \item All the Google tests for the first step pass
+        \item If we launch an A work request, the first type A worker handles it
+        \item If we launch a B work request, the type B worker handles it
+        \item If we launch a C work request, the type C worker handles it
+        \item If we launch A, B and C work requests, they are all handled by the corresponding worker simultaneously
+        \item If we launch 5 A work request, the 2 type A workers manages the first 2 requests, while the 3 others are waiting. Once the first worker finished the computation, it gets the next A request until none are waiting anymore.
+        \item If we launch any request while its corresponding worker is busy, the requests wait.
+        \item if we launch multiple work requests for any worker, the requests id are set in order in the console.
+    \end{itemize}
 
     \section*{Step 2 --- \texttt{getNextResult} and \texttt{provideResult}}
     \subsection*{Conception}
@@ -94,6 +106,17 @@
     The same behavior may be achieved by using a list to store the results and then sorting it upon a request for result, although this method would be less efficient.
 
     \subsection*{Tests}
+
+    The following manual tests have been made and passed:
+    \begin{itemize}
+        \item All the Google tests for the second step pass
+        \item If we launch an A work request, the first type A worker handles it and the result is returned
+        \item If we launch a B work request, the type B worker handles it and the result is returned
+        \item If we launch a C work request, the type C worker handles it and the result is returned
+        \item If we launch A, B and C work requests, they are all handled by the corresponding worker simultaneously and all results are returned once the last worker has finished.
+        \item If we launch 5 A work request, the 2 type A workers manages the first 2 requests, while the 3 others are waiting. Once the first worker finished the computation, it gets the next A request until none are waiting anymore. The result are returned in the same order than the launched request id.
+        \item If we launch any request while its corresponding worker is busy, the requests wait. Each result is returned in order.
+    \end{itemize}
 
     \section*{Step 3 --- \texttt{abortComputation} and \texttt{continueWork}}
 
