@@ -93,8 +93,6 @@
         \item When multiple work requests for any worker are issued, the requests id are set in order in the console.
     \end{itemize}
 
-    \pagebreak
-
     \section*{Step 2 --- \texttt{getNextResult} and \texttt{provideResult}}
     \subsection*{Conception}
 
@@ -107,7 +105,7 @@
     Once a result is available and it's the next in order, it is retrieved from the back of the queue, and the queue is updated by removing this element.
     If there are more results available after retrieving one, the method signals the next waiting thread, ensuring a continuous flow of result processing.
 
-    \texttt{provideResult} allows computation threads to return completed results.
+    The \texttt{provideResult} method allows computation threads to return completed results.
     The method searches the \texttt{resultsQueue} for the corresponding computation ID using \texttt{std::find\_if}.
     Upon finding the matching entry, it updates the \texttt{std::optional<Result>} with the actual result.
     After updating the result, the method signals that a new result is available, potentially waking up a client thread waiting in \texttt{getNextResult}.
