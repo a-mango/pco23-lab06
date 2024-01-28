@@ -46,57 +46,85 @@
 %    printf("Hello world");
 %    \end{lstlisting}
 
-    \section{Introduction}
+    \section*{Introduction}
 
-    \section {Step 1 \ttt{requestComputation} and \ttt{getWork}}
-    \subsection{Conception}
+    \section*{Step 1 --- \texttt{requestComputation} and \texttt{getWork}}
+    \subsection*{Conception}
 %   From where can we get the control back ?
 
-    The shared buffer is used to store calculation requests. The requests can be of different types, in our case A, B or C. Requests must then be executed in the order order of arrival. The buffer uses an \ttt{EnumIndexedArray}, a custom wrapper around \ttt{std::array}, to store computation requests. This structure is indexed by \ttt{ComputationType}, allowing for type-safe access to queues of computation requests. Each queue is tailored to a specific computation type (e.g., A, B, C), ensuring that requests are organized and retrievable based on their nature. This design facilitates efficient fetching of tasks by calculators specialized in particular computation types.
+    The shared buffer is used to store calculation requests.
+    The requests can be of different types, in our case A, B or C. Requests must then be executed in the order of arrival.
+    The buffer uses an \texttt{EnumIndexedArray}, a custom wrapper around \texttt{std::array}, to store computation requests.
+    This structure is indexed by \texttt{ComputationType}, allowing for type-safe access to queues of computation requests.
+    Each queue is tailored to a specific computation type (e.g., A, B, C), ensuring that requests are organized and retrievable based on their nature.
+    This design facilitates efficient fetching of tasks by workers specialized in particular computation types.
 
-    The results are managed in a \ttt{std::deque}, that supports efficient insertion and removal from both ends. We have chosen this structure for its ability to maintain the order of results (results are returned to the client in the same sequence as the requests were submitted).
+    The results are managed in an \texttt{std::deque}, that supports efficient insertion and removal from both ends.
+    We have chosen this structure for its ability to maintain the order of results (results are returned to the client in the same sequence as the requests were submitted).
 
-    To handle the computation requests, the \ttt{requestComputation(Computation c)} method is designed to handle incoming computation requests from client threads. Each request is assigned a unique ID, which is incremented for each new request to maintain the order. The method uses  \ttt{wait(Condition\& cond)} on a condition variable when the buffer reaches its capacity, thus implementing a blocking behavior as required.
+    To handle the computation requests, the \texttt{requestComputation(Computation c)} method is designed to handle incoming computation requests from client threads.
+    Each request has a unique ID assigned, which is incremented for each new request to maintain the order.
+    The method uses \texttt{wait(Condition\& cond)} on a condition variable when the buffer reaches its capacity, thus implementing a blocking behavior as required.
 
-    Calculator threads use \ttt{getWork()} to fetch computation tasks. The method ensures exclusive access to the buffer and checks if there are available tasks of the requested type. If the queue is empty, it blocks the thread using \ttt{wait()} on a condition variable until new tasks are available. Once a task is fetched, the method signals that the queue is not full, potentially unblocking client threads waiting to submit new computations. This ensures a continuous flow of tasks to calculators.
+    Worker threads use \texttt{getWork()} to fetch computation tasks.
+    The method ensures exclusive access to the buffer and checks if there are available tasks of the requested type.
+    If the queue is empty, it blocks the thread using \texttt{wait()} on a condition variable until new tasks are available.
+    Once a task is fetched, the method signals that the queue is not full, potentially unblocking client threads waiting to submit new computations.
+    This ensures a continuous flow of tasks to workers.
 
-    \subsection{Tests}
+    \subsection*{Tests}
 %   Any edge cases ?
 
-    \section{Step 2 \ttt{getNextResult} and \ttt{provideResult}}
-    \subsection{Conception}
+    \section*{Step 2 --- \texttt{getNextResult} and \texttt{provideResult}}
+    \subsection*{Conception}
 
-    \ttt{getNextResult} is responsible for retrieving the next available result in the correct order. Upon entering the method, the monitor is locked to ensure exclusive access to the resultsQueue. It immediately checks if the system has been stopped, and if so, exits and throws a stop exception. A while loop is used to wait for an available result. This loop is crucial because it accounts for scenarios where results are not ready in order, necessitating a re-check whenever a thread is woken up. If the queue is empty or the next result in order is not yet available, the thread waits on the \ttt{resultAvailable} condition variable. Once a result is available and it's the next in order, it is retrieved from the back of the queue, and the queue is updated by removing this element. If there are more results available after retrieving one, the method signals the next waiting thread, ensuring a continuous flow of result processing.
+    \texttt{getNextResult} is responsible for retrieving the next available result in the correct order.
+    Upon entering the method, the monitor is locked to ensure exclusive access to the resultsQueue.
+    It immediately checks if the system has been stopped, and if so, exits and throws a stop exception.
+    A while loop is used to wait for an available result.
+    This loop is crucial because it accounts for scenarios where results are not ready in order, necessitating a re-check whenever a thread is woken up.
+    If the queue is empty or the next result in order is not yet available, the thread waits on the \texttt{resultAvailable} condition variable.
+    Once a result is available and it's the next in order, it is retrieved from the back of the queue, and the queue is updated by removing this element.
+    If there are more results available after retrieving one, the method signals the next waiting thread, ensuring a continuous flow of result processing.
 
-    \ttt{provideResult} allows computation threads to return completed results. The method searches the \ttt{resultsQueue} for the corresponding computation ID using \ttt{std::find\_if}. Upon finding the matching entry, it updates the \ttt{std::optional<Result>} with the actual result. After updating the result, the method signals that a new result is available, potentially waking up a client thread waiting in \ttt{getNextResult}.
+    \texttt{provideResult} allows computation threads to return completed results.
+    The method searches the \texttt{resultsQueue} for the corresponding computation ID using \texttt{std::find\_if}.
+    Upon finding the matching entry, it updates the \texttt{std::optional<Result>} with the actual result.
+    After updating the result, the method signals that a new result is available, potentially waking up a client thread waiting in \texttt{getNextResult}.
 
-    The implementation implicitly ensures result ordering by the manner in which results are stored and retrieved. Each result is associated with its computation ID, and \ttt{getNextResult} retrieves results based on this ordering. The use of \ttt{std::optional<Result>} allows for results to be stored in the queue before they are actually available, ensuring that the retrieval order matches the request order, regardless of the computation completion order.
+    The implementation implicitly ensures result ordering by the manner in which results are stored and retrieved.
+    Each result is associated with its computation ID, and \texttt{getNextResult} retrieves results based on this ordering.
+    The use of \texttt{std::optional<Result>} allows for results to be stored in the queue before they are actually available, ensuring that the retrieval order matches the request order, regardless of the computation completion order.
+    The same behavior may be achieved by using a list to store the results and then sorting it upon a request for result, although this method would be less efficient.
 
-    \subsection{Tests}
+    \subsection*{Tests}
 
+    \section*{Step 3 --- \texttt{abortComputation} and \texttt{continueWork}}
 
-    \section{Step 3 \ttt{abortComputation} and \ttt{continueWork}}
+    \subsection*{Conception}
 
-    The \ttt{abortComputation} method is triggered by the user to cancel a specific computation.
+    The \texttt{abortComputation} method is triggered by the user to cancel a specific computation.
     Upon reception of the request, the manager must find the computation to abort and remove if from either the requests or results queue, depending
     on whether the workload was already picked up by a worker thread or not.
-    If the computation was in the requests queue, the manager must notify other functions waiting on a \ttt{notFull} condition that it may proceed and remove the result from the results queue.
+    If the computation was in the requests queue, the manager must notify other functions waiting on a \texttt{notFull} condition that it may proceed and remove the result from the results queue.
     If the computation was already being worked on, it must only be removed from the results queue.
 
-    The \ttt{continueWork} method is periodically called by the workers to check whether the assigned workload has been aborted or not or if the program is stopped.
+    The \texttt{continueWork} method is periodically called by the workers to check whether the assigned workload has been aborted or not or if the program is stopped.
     If the program is stopped, the method must simply return false.
     Otherwise, a boolean indicating whether the computation has been aborted or not is returned.
     This is done by checking if the computation is still in the requests queue.
 
-    \subsection{Conception}
-    \subsection{Tests}
+    \subsection*{Tests}
 
+    \begin{itemize}
+        \item
+    \end{itemize}
 
-    \section{Step 4 \ttt{stop} and \ttt{throwStopException}}
-    \subsection{Conception}
-    \subsection{Tests}
+    \section*{Step 4 --- \texttt{stop} and \texttt{throwStopException}}
+    \subsection*{Conception}
+    \subsection*{Tests}
 
-    \section{Conclusion}
+    \section*{Conclusion}
 
 
 \end{document}
