@@ -33,6 +33,7 @@ int ComputationManager::requestComputation(Computation c) {
         // Re-checking is mandatory here since the condition may have been
         // signaled by the stop() method.
         if (stopped) {
+            signal(notFullConditions[c.computationType]);
             monitorOut();
             throwStopException();
         }
@@ -105,6 +106,7 @@ Result ComputationManager::getNextResult() {
         // Re-checking is mandatory here since the condition may have been
         // signaled by the stop() method.
         if (stopped) {
+            signal(resultAvailable);
             monitorOut();
             throwStopException();
         }
