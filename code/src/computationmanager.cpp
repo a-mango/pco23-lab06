@@ -58,25 +58,12 @@ void ComputationManager::abortComputation(int id) {
         return;
     }
 
-    // Remove the result from the results queue.
-    auto const toRemove =
-        std::remove_if(resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) { return r.id == id; });
+    // Remove the result from the results queue. It is always present per design.
+    resultsQueue.erase(
+        std::remove_if(resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) { return r.id == id; }),
+        resultsQueue.end());
 
-    // Return early if the result to remove is not present.
-    if (toRemove == resultsQueue.end()) {
-        monitorOut();
-        return;
-    }
-
-    resultsQueue.erase(toRemove, resultsQueue.end());
-
-    // Signal that there is a new result if appropriate.
-    if (!resultsQueue.empty() && resultsQueue.back().value.has_value()) {
-        signal(resultAvailable);
-    }
-
-    // Look in each request queue for the request with the given id. If found, remove it and signal the notFull
-    // condition.
+    // Look in each buffer for the request with the given id. If found, remove it and signal the notFull condition.
     for (std::size_t i = 0; i < TYPE_COUNT; ++i) {
         auto& queue = requestsBuffer[i];
         queue.erase(std::remove_if(queue.begin(), queue.end(), [id](auto const& r) { return r.getId() == id; }),
