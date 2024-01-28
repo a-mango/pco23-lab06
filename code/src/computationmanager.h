@@ -218,7 +218,7 @@ protected:
 
     /**
      * @brief The buffers for the requests per computation type.
-     * FIXME: change to queue
+     * @note A deque is used in place of a queue because we need to be able to erase elements in the middle of it.
      */
     EnumIndexedArray<std::deque<Request>, TYPE_COUNT> requestsBuffer;
 
@@ -233,8 +233,7 @@ protected:
     EnumIndexedArray<Condition, TYPE_COUNT> notFullConditions;
 
     /**
-     * @brief The storage structure for the computation results and their
-     *        associated ids.
+     * @brief The storage structure for the computation results and their associated ids.
      */
     struct result_t {
         std::size_t           id;
@@ -244,6 +243,7 @@ protected:
 
     /**
      * @brief The queue of results.
+     * @note A deque is used in place of a queue because we need to be able to erase elements in the middle of it.
      */
     std::deque<result_t> resultsQueue;
 
