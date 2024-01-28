@@ -76,6 +76,18 @@
 
 
     \section{Step 3 \ttt{abortComputation} and \ttt{continueWork}}
+
+    The \ttt{abortComputation} method is triggered by the user to cancel a specific computation.
+    Upon reception of the request, the manager must find the computation to abort and remove if from either the requests or results queue, depending
+    on whether the workload was already picked up by a worker thread or not.
+    If the computation was in the requests queue, the manager must notify other functions waiting on a \ttt{notFull} condition that it may proceed and remove the result from the results queue.
+    If the computation was already being worked on, it must only be removed from the results queue.
+
+    The \ttt{continueWork} method is periodically called by the workers to check whether the assigned workload has been aborted or not or if the program is stopped.
+    If the program is stopped, the method must simply return false.
+    Otherwise, a boolean indicating whether the computation has been aborted or not is returned.
+    This is done by checking if the computation is still in the requests queue.
+
     \subsection{Conception}
     \subsection{Tests}
 
