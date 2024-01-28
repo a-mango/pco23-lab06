@@ -34,7 +34,6 @@ int ComputationManager::requestComputation(Computation c) {
         // signaled by the stop() method.
         if (stopped) {
             monitorOut();
-            signal(notFullConditions[c.computationType]);
             throwStopException();
         }
     }
@@ -100,14 +99,13 @@ Result ComputationManager::getNextResult() {
     }
 
     // Check whether a result is available.
-    while (resultsQueue.empty() || !resultsQueue.back().value.has_value()) {
+    if (resultsQueue.empty() || !resultsQueue.back().value.has_value()) {
         wait(resultAvailable);
 
         // Re-checking is mandatory here since the condition may have been
         // signaled by the stop() method.
         if (stopped) {
             monitorOut();
-            signal(resultAvailable);
             throwStopException();
         }
     }
@@ -133,14 +131,13 @@ Request ComputationManager::getWork(ComputationType computationType) {
     }
 
     // Check whether the buffer is empty and if so, wait for it to be not empty.
-    while (requestsBuffer[computationType].empty()) {
+    if (requestsBuffer[computationType].empty()) {
         wait(notEmptyConditions[computationType]);
 
         // Re-checking is mandatory here since the condition may have been
         // signaled by the stop() method.
         if (stopped) {
             monitorOut();
-            signal(notEmptyConditions[computationType]);
             throwStopException();
         }
     }
