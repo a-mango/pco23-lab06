@@ -141,6 +141,7 @@
 
     \begin{itemize}
         \item The automated tests succeed.
+        \item When an ongoing computation is aborted, it stops on the next \texttt{continueWork()} call and the result is not displayed.
         \item When an unfinished computation is aborted, the result is not displayed.
         \item When the buffer for a given type is full, and an unfinished computation of the same type is aborted, another computation request of the same type may be added.
         \item When the first computation of a given type is aborted, the result of the second computation of the same type is displayed first.
@@ -156,10 +157,16 @@
 
     The \texttt{stop} method is called by the user to stop the program.
     It sets the \texttt{stopped} boolean to true and notifies all conditions (\texttt{notFull}, \texttt{notEmpty} and \texttt{resultAvailable}) that the program has been stopped.
-    The program must be modified so that any method which had a condition waiting now checks if the program has been stopped upon waking up, such as in listing \ref{lst:1}.
+    The program must be modified in the following ways:
+    \begin{enumerate}
+        \item On method entrance, the \texttt{stopped} flag must be checked and the method must return when it is set to true.
+        \item Any method which has a wait condition must check if the program has been stopped upon waking up, such as in listing \ref{lst:1}.
+    \end{enumerate}
+
     If the program has been stopped, the method must signal eventual other waits of the same condition that the program has been stopped.
     This pattern is known as \textit{cascading}.
     Once the last wait has been cascaded to, it releases the monitor and exits by throwing a \texttt{StopException} through the \texttt{throwStopException} method.
+    The control flow then cascades back up the signaling chain, releasing monitors and throwing exceptions, until the \texttt{stop} method is reached and exited.
 
     \begin{lstlisting}[caption={Excrept of the stop condition checking in the \texttt{ComputationManager::getNextResult()} method.}, captionpos=b, label=lst:1]
 if (stopped) {
@@ -169,8 +176,19 @@ if (stopped) {
 }
     \end{lstlisting}
 
-%    Mention subsequent test upon reentrancy
     \subsection*{Tests}
+
+    The following cases where tested and verified to work as expected:
+
+    \begin{itemize}
+        \item The automated tests succeed.
+        \item When no request are present, the program stops immediately.
+        \item When the program is stopped, the workloads end on the next \texttt{continueWork()} call.
+        \item When the program is stopped, no more results are displayed.
+        \item When the program is stopped and a request for a new computation is issued, the request is ignored.
+        \item When the program is stopped and a cancellation request is issued, the cancellation is ignored.
+        \item When there are workloads waiting in the buffer and the program is stopped, the workloads are not executed.
+    \end{itemize}
 
     \section*{Conclusion}
 
