@@ -42,10 +42,6 @@
 \begin{document}
     \header
 
-%    \begin{lstlisting}[caption={Bla bla bla}, captionpos=b, label=lst:1]
-%    printf("Hello world");
-%    \end{lstlisting}
-
     \section*{Introduction}
 
     \section*{Step 1 --- \texttt{requestComputation} and \texttt{getWork}}
@@ -116,12 +112,39 @@
 
     \subsection*{Tests}
 
+    The following cases where tested and verified to work as expected:
+
     \begin{itemize}
-        \item
+        \item The automated tests succeed.
+        \item When an unfinished computation is aborted, the result is not displayed.
+        \item When the buffer for a given type is full, and an unfinished computation of the same type is aborted, another computation request of the same type may be added.
+        \item When the first computation of a given type is aborted, the result of the second computation of the same type is displayed first.
+        \item When the first computation of a given type is aborted and the second computation of the same type is already finished, the result of the second computation of the said type is immediately displayed.
+        \item When a result for a computation is available but is waiting on a computation of another type to finish before being displayed, cancellation of the computation will not display the result.
+        \item A cancellation request for an already cancelled workload is logged, but ignored.
+        \item A cancellation request for an already finished and displayed workload is logged, but ignored.
     \end{itemize}
 
     \section*{Step 4 --- \texttt{stop} and \texttt{throwStopException}}
+
     \subsection*{Conception}
+
+    The \texttt{stop} method is called by the user to stop the program.
+    It sets the \texttt{stopped} boolean to true and notifies all conditions (\texttt{notFull}, \texttt{notEmpty} and \texttt{resultAvailable}) that the program has been stopped.
+    The program must be modified so that any method which had a condition waiting now checks if the program has been stopped upon waking up, such as in listing \ref{lst:1}.
+    If the program has been stopped, the method must signal eventual other waits of the same condition that the program has been stopped.
+    This pattern is known as \textit{cascading}.
+    Once the last wait has been cascaded to, it releases the monitor and exits by throwing a \texttt{StopException} through the \texttt{throwStopException} method.
+
+    \begin{lstlisting}[caption={Excrept of the stop condition checking in the \texttt{ComputationManager::getNextResult()} method.}, captionpos=b, label=lst:1]
+if (stopped) {
+    signal(resultAvailable);
+    monitorOut();
+    throwStopException();
+}
+    \end{lstlisting}
+
+%    Mention subsequent test upon reentrancy
     \subsection*{Tests}
 
     \section*{Conclusion}
