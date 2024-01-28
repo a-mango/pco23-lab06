@@ -3,7 +3,7 @@
 //   / /_/ / /   / / / /   __/ // / / /_/ / /_ <  //
 //  / ____/ /___/ /_/ /   / __// /_/ / __/___/ /  //
 // /_/    \____/\____/   /____/\____/____/____/   //
-// Auteurs : Prénom Nom, Prénom Nom
+// Auteurs : Timothée Van Hove, Aubry Mangold
 
 
 // A vous de remplir les méthodes, vous pouvez ajouter des attributs ou méthodes pour vous aider
@@ -43,7 +43,7 @@ int ComputationManager::requestComputation(Computation c) {
     // Insert the request in the queue and prepare a result for it.
     auto const id = nextId++;
     buffers[c.computationType].emplace_back(c, id);
-    results.emplace_front(id, std::nullopt);
+    results.emplace_front(id);
 
     signal(notEmptyConditions[c.computationType]);
 
@@ -60,20 +60,16 @@ void ComputationManager::abortComputation(int id) {
     }
 
     // Remove the result from the results queue.
-    if (std::find_if(results.begin(), results.end(), [id](auto const& r) {return r.first == id;}) != results.end()) {
-        results.erase(std::remove_if(results.begin(), results.end(), [id](auto const& r) {return r.first == id;}), results.end());
-        if (!results.empty() && results.back().second.has_value()){
-            signal(resultAvailable);
-        }
+    results.erase(std::remove_if(results.begin(), results.end(), [id](auto const& r) {return r.id == id;}), results.end());
+    if (!results.empty() && results.back().value.has_value()){
+        signal(resultAvailable);
     }
 
     // Look in each request queue for the request with the given id. If found, remove it and signal the notFull condition.
     for(std::size_t i = 0; i < TYPE_COUNT; ++i) {
         auto& queue = buffers[i];
-        if (std::find_if(queue.begin(), queue.end(), [id](auto const& r) {return r.getId() == id;}) != queue.end()) {
-            queue.erase(std::remove_if(queue.begin(), queue.end(), [id](auto const& r) {return r.getId() == id;}), queue.end());
-            signal(notFullConditions[i]);
-        }
+        queue.erase(std::remove_if(queue.begin(), queue.end(), [id](auto const& r) {return r.getId() == id;}), queue.end());
+        signal(notFullConditions[i]);
     }
 
     monitorOut();
@@ -84,7 +80,7 @@ Result ComputationManager::getNextResult() {
 
     while (!stopped) {
         if (!results.empty()) {
-            const auto& result = results.back().second;
+            const auto& result = results.back().value;
             if (result.has_value()) {
                 results.pop_back();
                 monitorOut();
@@ -133,7 +129,7 @@ bool ComputationManager::continueWork(int id) {
         return false;
     }
 
-    auto const inProgress = std::any_of(results.begin(), results.end(), [id](auto const& r) {return r.first == id;});
+    auto const inProgress = std::any_of(results.begin(), results.end(), [id](auto const& r) {return r.id == id;});
 
     monitorOut();
     return inProgress;
@@ -143,9 +139,9 @@ void ComputationManager::provideResult(Result result) {
     monitorIn();
 
     // TODO: find a better way
-    auto const it = std::find_if(results.begin(), results.end(), [result](auto const& r) {return r.first == result.getId();});
+    auto const it = std::find_if(results.begin(), results.end(), [result](auto const& r) {return r.id == result.getId();});
     if (it != results.end()) {
-        it->second = result;
+        it->value = result;
         signal(resultAvailable);
     }
 

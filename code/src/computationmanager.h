@@ -3,7 +3,7 @@
 //   / /_/ / /   / / / /   __/ // / / /_/ / /_ <  //
 //  / ____/ /___/ /_/ /   / __// /_/ / __/___/ /  //
 // /_/    \____/\____/   /____/\____/____/____/   //
-// Auteurs : Prénom Nom, Prénom Nom
+// Auteurs : Timothée Van Hove, Aubry Mangold
 
 // La déclaration de la classe ComputationManager se trouve en bas du fichier,
 // ajoutez-y les attributs (et fonctions au besoin) pour votre implémentation.
@@ -13,8 +13,6 @@
 
 #ifndef COMPUTATIONMANAGER_H
 #define COMPUTATIONMANAGER_H
-
-// Ajoutez les includes dont vous avez besoin ici
 
 #include <array>
 #include <map>
@@ -30,6 +28,11 @@
  */
 enum class ComputationType : std::size_t {A, B, C, COUNT};
 
+/**
+ * @brief The EnumIndexedArray class is a wrapper around std::array that allows to access elements with an enum.
+ * @tparam T The type of the elements
+ * @tparam U The number of elements
+ */
 template <typename T, std::size_t U>
 class EnumIndexedArray : public std::array<T, U> {
 public:
@@ -211,7 +214,12 @@ protected:
     EnumIndexedArray<Condition, TYPE_COUNT>           notEmptyConditions;
     EnumIndexedArray<Condition, TYPE_COUNT>           notFullConditions;
 
-    using result_t = std::pair<std::size_t, std::optional<Result>>;
+    struct result_t {
+        std::size_t id;
+        std::optional<Result> value = std::nullopt;
+        explicit result_t(std::size_t id) : id(id) {}
+    };
+
     std::deque<result_t> results;
 
     bool stopped = false;
