@@ -26,16 +26,17 @@
 /**
  * @brief The ComputationType enum represents the abstract computation types that are available
  */
-enum class ComputationType : std::size_t {A, B, C, COUNT};
+enum class ComputationType {A, B, C, COUNT};
 
 /**
- * @brief The EnumIndexedArray class is a wrapper around std::array that allows to access elements with an enum.
+ * @brief The EnumIndexedArray class is a wrapper around std::array that allows
+ *        to access elements with an enum.
  * @tparam T The type of the elements
  * @tparam U The number of elements
  */
 template <typename T, std::size_t U>
 class EnumIndexedArray : public std::array<T, U> {
-public:
+    public:
     using std::array<T, U>::operator[];
 
     template <typename V>
@@ -200,28 +201,55 @@ public:
     void stop();
 
 protected:
-
-    // Ajoutez vos attributs et déclarations de méthodes ici
-    // P.ex. variables conditions et structure de données pour le buffer
-
-    // Queues
+    /**
+     * @brief The maximum number of elements in a computation request queue.
+     */
     const size_t MAX_TOLERATED_QUEUE_SIZE;
 
-    constexpr static auto TYPE_COUNT = static_cast<std::size_t>(ComputationType::COUNT);
+    /**
+     * @brief The number of computation types.
+     */
+    static auto constexpr TYPE_COUNT = static_cast<std::size_t>(ComputationType::COUNT);
 
-    Condition                                         resultAvailable;
+    /**
+     * @brief Used to signal that a result is available.
+     */
+    Condition resultAvailable;
+
+    /**
+     * @brief The buffers for the requests per computation type.
+     * FIXME: change to queue
+     */
     EnumIndexedArray<std::deque<Request>, TYPE_COUNT> buffers;
-    EnumIndexedArray<Condition, TYPE_COUNT>           notEmptyConditions;
-    EnumIndexedArray<Condition, TYPE_COUNT>           notFullConditions;
 
+    /**
+     * @brief The conditions for the buffers per type not to be empty.
+     */
+    EnumIndexedArray<Condition, TYPE_COUNT> notEmptyConditions;
+
+    /**
+     * @brief The conditions for the buffers per type not to be full.
+     */
+    EnumIndexedArray<Condition, TYPE_COUNT> notFullConditions;
+
+    /**
+     * @brief The storage structure for the computation results and their
+     *        associated ids.
+     */
     struct result_t {
-        std::size_t id;
+        std::size_t           id;
         std::optional<Result> value = std::nullopt;
         explicit result_t(std::size_t id) : id(id) {}
     };
 
+    /**
+     * @brief The queue of results.
+     */
     std::deque<result_t> results;
 
+    /**
+     * @brief Flag indicating whether the program is stopped.
+     */
     bool stopped = false;
 
 private:

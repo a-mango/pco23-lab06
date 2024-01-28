@@ -63,14 +63,15 @@ void ComputationManager::abortComputation(int id) {
     results.erase(std::remove_if(results.begin(), results.end(), [id](auto const& r) {return r.id == id;}), results.end());
     if (!results.empty() && results.back().value.has_value()){
         signal(resultAvailable);
+
+        // Look in each request queue for the request with the given id. If found, remove it and signal the notFull condition.
+        for(std::size_t i = 0; i < TYPE_COUNT; ++i) {
+            auto& queue = buffers[i];
+            queue.erase(std::remove_if(queue.begin(), queue.end(), [id](auto const& r) {return r.getId() == id;}), queue.end());
+            signal(notFullConditions[i]);
+        }
     }
 
-    // Look in each request queue for the request with the given id. If found, remove it and signal the notFull condition.
-    for(std::size_t i = 0; i < TYPE_COUNT; ++i) {
-        auto& queue = buffers[i];
-        queue.erase(std::remove_if(queue.begin(), queue.end(), [id](auto const& r) {return r.getId() == id;}), queue.end());
-        signal(notFullConditions[i]);
-    }
 
     monitorOut();
 }
@@ -83,6 +84,7 @@ Result ComputationManager::getNextResult() {
             const auto& result = results.back().value;
             if (result.has_value()) {
                 results.pop_back();
+                // FIXME: should we signal resultAvailable here ?
                 monitorOut();
                 return result.value();
             }
@@ -91,12 +93,14 @@ Result ComputationManager::getNextResult() {
         wait(resultAvailable);
     }
 
+
     monitorOut();
     throwStopException(); // FIXME: invert condition
 }
 
 Request ComputationManager::getWork(ComputationType computationType) {
     monitorIn();
+
     // FIXME: should be if ?
     while (buffers[computationType].empty()) {
         if (stopped) {
