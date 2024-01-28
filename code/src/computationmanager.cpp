@@ -29,6 +29,14 @@ int ComputationManager::requestComputation(Computation c) {
     // Check if the queue is full and if so, wait for it to be not full.
     if (requestsBuffer[c.computationType].size() >= MAX_TOLERATED_QUEUE_SIZE) {
         wait(notFullConditions[c.computationType]);
+
+        // Re-checking is mandatory here since the condition may have been
+        // signaled by the stop() method.
+        if (stopped) {
+            monitorOut();
+            signal(notFullConditions[c.computationType]);
+            throwStopException();
+        }
     }
 
     // Insert the request in the queue and prepare a result for it.
@@ -53,7 +61,8 @@ void ComputationManager::abortComputation(int id) {
     }
 
     // Remove the result from the results queue.
-    auto const toRemove = std::remove_if(resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) { return r.id == id; });
+    auto const toRemove =
+        std::remove_if(resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) { return r.id == id; });
 
     // Return early if the result to remove is not present.
     if (toRemove == resultsQueue.end()) {
@@ -93,6 +102,14 @@ Result ComputationManager::getNextResult() {
     // Check whether a result is available.
     while (resultsQueue.empty() || !resultsQueue.back().value.has_value()) {
         wait(resultAvailable);
+
+        // Re-checking is mandatory here since the condition may have been
+        // signaled by the stop() method.
+        if (stopped) {
+            monitorOut();
+            signal(resultAvailable);
+            throwStopException();
+        }
     }
 
     const auto& result = resultsQueue.back().value;
@@ -120,10 +137,10 @@ Request ComputationManager::getWork(ComputationType computationType) {
         wait(notEmptyConditions[computationType]);
 
         // Re-checking is mandatory here since the condition may have been
-        // signaled by the stop() method while we were waiting.
+        // signaled by the stop() method.
         if (stopped) {
-            signal(notEmptyConditions[computationType]);
             monitorOut();
+            signal(notEmptyConditions[computationType]);
             throwStopException();
         }
     }
