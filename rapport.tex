@@ -44,23 +44,31 @@
 
     \section*{Introduction}
 
+    The following laboratory report describes the implementation of a computation manager using the producer-consumer pattern and the Hoare monitor synchronization construct following a boss-worker paradigm.
+
+    The requests may be of different types (held in an \texttt{enum}). In this case the types are A, B and C.
+    A shared buffer is used to store calculation requests issued by the GUI. Groups of workers per type will then fetch these requests in the order of arrival and execute them.
+    The results are then returned to the GUI, which displays them in the order of arrival.
+
+    \subsection*{Data structures}
+    This project uses an \texttt{EnumIndexedArray} (custom wrapper around \texttt{std::array}) to store the computation requests and the condition variables by computation type.
+    This structure is indexed by the \texttt{ComputationType} enumeration, allowing for type-safe access to queues of computation requests.
+    Each queue is related to a specific computation type (e.g., A, B, C), ensuring that requests are organized and retrievable based on their nature.
+    This design facilitates efficient fetching of tasks by workers specialized in particular computation types and abstracts away the implementation details, namely the casts, necessary to use an \texttt{enum} as an index in an \texttt{std::array}.
+
+    The results are managed in an \texttt{std::deque}, a structure that supports efficient insertion and removal from both ends.
+    Contrary to an \texttt{std::queue}, it supports random access to elements, which is necessary to remove items from the middle of the container.
+    This structure was chosen for its ability to maintain the order of results (results are returned to the client in the same sequence as the requests were submitted) and for being efficient in terms of insertion and removal respectively at the beginning and end of the container.
+
     \section*{Step 1 --- \texttt{requestComputation} and \texttt{getWork}}
     \subsection*{Conception}
 %   From where can we get the control back ?
 
-    The shared buffer is used to store calculation requests.
-    The requests can be of different types, in our case A, B or C. Requests must then be executed in the order of arrival.
-    The buffer uses an \texttt{EnumIndexedArray}, a custom wrapper around \texttt{std::array}, to store computation requests.
-    This structure is indexed by \texttt{ComputationType}, allowing for type-safe access to queues of computation requests.
-    Each queue is tailored to a specific computation type (e.g., A, B, C), ensuring that requests are organized and retrievable based on their nature.
-    This design facilitates efficient fetching of tasks by workers specialized in particular computation types.
 
-    The results are managed in an \texttt{std::deque}, that supports efficient insertion and removal from both ends.
-    We have chosen this structure for its ability to maintain the order of results (results are returned to the client in the same sequence as the requests were submitted).
-
-    To handle the computation requests, the \texttt{requestComputation(Computation c)} method is designed to handle incoming computation requests from client threads.
+    The \texttt{requestComputation(Computation c)} method is designed to handle incoming computation requests from client threads.
     Each request has a unique ID assigned, which is incremented for each new request to maintain the order.
     The method uses \texttt{wait(Condition\& cond)} on a condition variable when the buffer reaches its capacity, thus implementing a blocking behavior as required.
+    When there is enough space in the buffer, the request is added to the queue and the method signals that the queue is not empty, potentially unblocking worker threads waiting for new tasks.
 
     Worker threads use \texttt{getWork()} to fetch computation tasks.
     The method ensures exclusive access to the buffer and checks if there are available tasks of the requested type.
@@ -182,7 +190,8 @@ if (stopped) {
 
     \begin{itemize}
         \item The automated tests succeed.
-        \item When no request are present, the program stops immediately.
+        \item When no request are present, the program stops immediately and the threads are joined.
+        \item When there is work being done and a stop is requested, the program throws \texttt{StopException} and the threads are joined.
         \item When the program is stopped, the workloads end on the next \texttt{continueWork()} call.
         \item When the program is stopped, no more results are displayed.
         \item When the program is stopped and a request for a new computation is issued, the request is ignored.
