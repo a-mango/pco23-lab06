@@ -176,13 +176,11 @@ bool ComputationManager::continueWork(int id) {
 void ComputationManager::provideResult(Result result) {
     monitorIn();
 
-    // TODO: find a better way
-    auto const findById = [result](auto const& r) {
-        return r.id == result.getId();
-    };
+    auto const it = std::find_if(
+        resultsQueue.begin(), resultsQueue.end(), [result](auto const& r) {
+            return r.id == result.getId();
+        });
 
-    auto const it =
-        std::find_if(resultsQueue.begin(), resultsQueue.end(), findById);
     if (it != resultsQueue.end()) {
         it->value = result;
         signal(resultAvailable);
