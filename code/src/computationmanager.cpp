@@ -73,8 +73,9 @@ void ComputationManager::abortComputation(int id) {
     // Look in each buffer for the request with the given id. If found, remove it and signal the notFull condition.
     for (std::size_t i = 0; i < TYPE_COUNT; ++i) {
         auto& queue = requestsBuffer[i];
-        auto const requestToRemove = std::remove_if(queue.begin(), queue.end(), [id](auto const& r) { return r.getId() == id; });
-
+        auto const requestToRemove =
+            std::remove_if(queue.begin(), queue.end(), [id](auto const& r) { return r.getId() == id; });
+        
         // Erase the request and signal if it was found in the current queue.
         if (requestToRemove != queue.end()) {
             queue.erase(requestToRemove, queue.end());
