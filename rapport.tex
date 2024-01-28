@@ -116,6 +116,8 @@
         \item If we launch A, B and C work requests, they are all handled by the corresponding worker simultaneously and all results are returned once the last worker has finished.
         \item If we launch 5 A work request, the 2 type A workers manages the first 2 requests, while the 3 others are waiting. Once the first worker finished the computation, it gets the next A request until none are waiting anymore. The result are returned in the same order than the launched request id.
         \item If we launch any request while its corresponding worker is busy, the requests wait. Each result is returned in order.
+        \item In the sequence A -> A -> B -> C the first result returned is A, followed by the results A, B and C
+        \item In the sequence A -> B -> C -> A, first the results A, B and C are returned, Then the second A result.
     \end{itemize}
 
     \section*{Step 3 --- \texttt{abortComputation} and \texttt{continueWork}}
