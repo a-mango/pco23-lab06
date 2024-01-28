@@ -99,7 +99,9 @@ Result ComputationManager::getNextResult() {
         throwStopException();
     }
 
-    // Check whether a result is available.
+    // Check whether the result is available and if not, wait for it to be.
+    // Note: a while loop is used because the finished workloads do not come in order. Hence, a thread with a result
+    // in second position may be signaled, but we still need to wait for another signal to provide the first result.
     while (resultsQueue.empty() || !resultsQueue.back().value.has_value()) {
         wait(resultAvailable);
 
@@ -114,11 +116,6 @@ Result ComputationManager::getNextResult() {
 
     const auto& result = resultsQueue.back().value;
     resultsQueue.pop_back();
-
-    // Wake up the next result thread if there is already a result.
-    if (!resultsQueue.empty() && resultsQueue.back().value.has_value()) {
-        signal(resultAvailable);
-    }
 
     monitorOut();
     return result.value();
@@ -192,7 +189,7 @@ void ComputationManager::stop() {
 
     stopped = true;
 
-    // Wake up all conditions so that threads may exit.
+    // Start to cascade wake-up calls to all conditions so that threads may exit.
     auto const signalThread = [this](auto& c) {signal(c);};
     std::for_each(notEmptyConditions.begin(), notEmptyConditions.end(), signalThread);
     std::for_each(notFullConditions.begin(), notFullConditions.end(), signalThread);
