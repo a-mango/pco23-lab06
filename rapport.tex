@@ -83,14 +83,14 @@
     The following manual tests have been made and passed:
 
     \begin{itemize}
-        \item All the Google tests for the first step pass
-        \item If we launch an A work request, the first type A worker handles it
-        \item If we launch a B work request, the type B worker handles it
-        \item If we launch a C work request, the type C worker handles it
-        \item If we launch A, B and C work requests, they are all handled by the corresponding worker simultaneously
-        \item If we launch 5 A work request, the 2 type A workers manages the first 2 requests, while the 3 others are waiting. Once the first worker finished the computation, it gets the next A request until none are waiting anymore.
-        \item If we launch any request while its corresponding worker is busy, the requests wait.
-        \item if we launch multiple work requests for any worker, the requests id are set in order in the console.
+        \item The provided automated tests succeed.
+        \item When an A work request is issued, the first type A worker handles it.
+        \item When a B work request is issued, the type B worker handles it.
+        \item When a C work request is issued, the type C worker handles it.
+        \item When A, B and C work requests are issued, they are all handled by the corresponding worker simultaneously.
+        \item When 5 A work request are issued, the 2 type A workers manages the first 2 requests, while the 3 others are waiting. Once the first worker finished the computation, it gets the next A request until none are waiting anymore.
+        \item When any request is issued while its corresponding worker is busy, the requests waits for an available worker before being executed.
+        \item When multiple work requests for any worker are issued, the requests id are set in order in the console.
     \end{itemize}
 
     \pagebreak
@@ -121,15 +121,15 @@
 
     The following manual tests have been made and passed:
     \begin{itemize}
-        \item All the Google tests for the second step pass
-        \item If we launch an A work request, the first type A worker handles it and the result is returned
-        \item If we launch a B work request, the type B worker handles it and the result is returned
-        \item If we launch a C work request, the type C worker handles it and the result is returned
-        \item If we launch A, B and C work requests, they are all handled by the corresponding worker simultaneously and all results are returned once the last worker has finished.
-        \item If we launch 5 A work request, the 2 type A workers manages the first 2 requests, while the 3 others are waiting. Once the first worker finished the computation, it gets the next A request until none are waiting anymore. The result are returned in the same order than the launched request id.
-        \item If we launch any request while its corresponding worker is busy, the requests wait. Each result is returned in order.
-        \item In the sequence A-A-B-C the first result returned is A, followed by the results A, B and C
-        \item In the sequence A-B-C-A, first the results A, B and C are returned, Then the second A result.
+        \item The provided automated tests succeed.
+        \item When an A work request is issued, the first available type A worker handles it and the result is returned.
+        \item When a B work request is issued, the first available type B worker handles it and the result is returned.
+        \item When a C work request is issued, the first available type C worker handles it and the result is returned.
+        \item When A, B and C work requests are issued, they are all handled by the corresponding worker simultaneously and all results are returned in first-in first-out order once the last worker has finished.
+        \item When 5 A work request are issued, the 2 type A workers manage the first 2 requests, while the 3 others are waiting. Once the first worker finished the computation, it gets the next A request until none are waiting anymore. The result are returned in the same order than the launched request id.
+        \item When any requests are issued while its corresponding worker is busy, the requests wait. Each result is returned in order.
+        \item When the sequence A-A-B-C is issued the first result returned is A, followed by the results A, B and C.
+        \item When the sequence A-B-C-A is issued, first the results A, B and C are returned, Then the second A result.
     \end{itemize}
 
     \pagebreak
@@ -154,7 +154,7 @@
     The following cases were tested and verified to work as expected:
 
     \begin{itemize}
-        \item The automated tests succeed.
+        \item The provided automated tests succeed.
         \item When an ongoing computation is aborted, it stops on the next \texttt{continueWork()} call and the result is not displayed.
         \item When an unfinished computation is aborted, the result is not displayed.
         \item When the buffer for a given type is full, and an unfinished computation of the same type is aborted, another computation request of the same type may be added.
@@ -197,7 +197,7 @@ if (stopped) {
     The following cases where tested and verified to work as expected:
 
     \begin{itemize}
-        \item The automated tests succeed.
+        \item The provided automated tests succeed.
         \item When no request are present, the program stops immediately and the threads are joined.
         \item When there is work being done and a stop is requested, the program throws \texttt{StopException} and the threads are joined.
         \item When the program is stopped, the workloads end on the next \texttt{continueWork()} call.
