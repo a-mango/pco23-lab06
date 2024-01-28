@@ -15,8 +15,6 @@
 
 #include <algorithm>
 
-// FIXME: check if reds standard is 80 or 120 cols
-
 ComputationManager::ComputationManager(int maxQueueSize): MAX_TOLERATED_QUEUE_SIZE(maxQueueSize)
 {
     // TODO
