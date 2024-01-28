@@ -15,8 +15,7 @@
 
 #include <algorithm>
 
-ComputationManager::ComputationManager(int maxQueueSize)
-    : MAX_TOLERATED_QUEUE_SIZE(maxQueueSize) {}
+ComputationManager::ComputationManager(int maxQueueSize) : MAX_TOLERATED_QUEUE_SIZE(maxQueueSize) {}
 
 int ComputationManager::requestComputation(Computation c) {
     monitorIn();
@@ -30,8 +29,7 @@ int ComputationManager::requestComputation(Computation c) {
     if (requestsBuffer[c.computationType].size() >= MAX_TOLERATED_QUEUE_SIZE) {
         wait(notFullConditions[c.computationType]);
 
-        // Re-checking is mandatory here since the condition may have been
-        // signaled by the stop() method.
+        // Re-checking is mandatory here since the condition may have been signaled by the stop() method.
         if (stopped) {
             signal(notFullConditions[c.computationType]);
             monitorOut();
@@ -77,8 +75,8 @@ void ComputationManager::abortComputation(int id) {
         signal(resultAvailable);
     }
 
-    // Look in each request queue for the request with the given id. If found,
-    // remove it and signal the notFull condition.
+    // Look in each request queue for the request with the given id. If found, remove it and signal the notFull
+    // condition.
     for (std::size_t i = 0; i < TYPE_COUNT; ++i) {
         auto& queue = requestsBuffer[i];
         queue.erase(std::remove_if(queue.begin(), queue.end(), [id](auto const& r) { return r.getId() == id; }),
@@ -100,13 +98,12 @@ Result ComputationManager::getNextResult() {
     }
 
     // Check whether the result is available and if not, wait for it to be.
-    // Note: a while loop is used because the finished workloads do not come in order. Hence, a thread with a result
+    // Note: a while loop is used because the finished workloads do not come in order. Hence, a wait with a result
     // in second position may be signaled, but we still need to wait for another signal to provide the first result.
     while (resultsQueue.empty() || !resultsQueue.back().value.has_value()) {
         wait(resultAvailable);
 
-        // Re-checking is mandatory here since the condition may have been
-        // signaled by the stop() method.
+        // Re-checking is mandatory here since the condition may have been signaled by the stop() method.
         if (stopped) {
             signal(resultAvailable);
             monitorOut();
@@ -133,8 +130,7 @@ Request ComputationManager::getWork(ComputationType computationType) {
     if (requestsBuffer[computationType].empty()) {
         wait(notEmptyConditions[computationType]);
 
-        // Re-checking is mandatory here since the condition may have been signaled by the stop() method,
-        // which means that a new result may have appeared since.
+        // Re-checking is mandatory here since the condition may have been signaled by the stop() method.
         if (stopped) {
             signal(notEmptyConditions[computationType]);
             monitorOut();
@@ -161,8 +157,8 @@ bool ComputationManager::continueWork(int id) {
     }
 
     // Check whether the result for the work request is already available.
-    auto const hasResult = [id](auto const& r) {return r.id == id;};
-    auto const inProgress = std::any_of(resultsQueue.begin(), resultsQueue.end(), hasResult);
+    auto const inProgress =
+        std::any_of(resultsQueue.begin(), resultsQueue.end(), [id](auto const& r) { return r.id == id; });
 
     monitorOut();
     return inProgress;
@@ -190,7 +186,7 @@ void ComputationManager::stop() {
     stopped = true;
 
     // Start to cascade wake-up calls to all conditions so that threads may exit.
-    auto const signalThread = [this](auto& c) {signal(c);};
+    auto const signalThread = [this](auto& c) { signal(c); };
     std::for_each(notEmptyConditions.begin(), notEmptyConditions.end(), signalThread);
     std::for_each(notFullConditions.begin(), notFullConditions.end(), signalThread);
     signal(resultAvailable);
